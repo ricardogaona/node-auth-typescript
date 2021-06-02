@@ -7,6 +7,6 @@ const options: ConnectOptions = {
     useCreateIndex: true
 };
 
-mongoose.connect('mongodb://mongo/mydatabase', options)
+mongoose.connect(process.env.MONGO_URL as string, options)
     .then(db => console.log('DB is connected to: ', db.connection.host))
     .catch(error => console.log(error));

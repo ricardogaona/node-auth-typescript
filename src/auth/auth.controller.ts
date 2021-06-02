@@ -1,13 +1,13 @@
 import { IUser, User } from './auth.model';
-import { sign, verify } from 'jsonwebtoken';
+import { sign } from 'jsonwebtoken';
 
 interface Payload {
     _id: string;
 }
 
 class AuthController {
-    private _secretKey: string = "12345-67890-09876-54321";
     private _loginError: string = 'Email or password is wrong!';
+    private _secretKey = process.env.SECRET_KEY || 'this-is-a-secret';
 
     async signUp(username: string, email: string, password: string): Promise<string> {
         const user: IUser = new User({
@@ -17,8 +17,7 @@ class AuthController {
         });
 
         user.password = await user.encryptPassword(password);
-
-        const savedUser = await user.save();
+        await user.save();
 
         const token: string = sign(
             { _id: user._id }, 
@@ -31,8 +30,12 @@ class AuthController {
 
     async login(email: string, password: string): Promise<string> {
         const user = await User.findOne({ email });
-
         if( !user ) {
+            throw new Error(this._loginError);
+        }
+
+        const validPassword = await user.validatePassword(password);
+        if ( !validPassword ) {
             throw new Error(this._loginError);
         }
 
@@ -43,18 +46,6 @@ class AuthController {
         );
 
         return token;
-    }
-
-    verifyToken(token: string): string{
-        let payload: Payload;
-
-        try {
-            payload = verify(token.substring(7), this._secretKey) as Payload;
-        } catch(error) {
-            throw new Error("The provided token is invalid!");
-        }
-
-        return payload._id;
     }
 }
 
